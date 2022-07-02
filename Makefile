@@ -16,4 +16,4 @@ run-dev:
 	docker run -it --rm -p $(PORT_SRC):$(PORT_DST) -v $(MOUNT_PATH_SRC):$(MOUNT_PATH_DST) binn-dev /bin/sh
 
 test:
-	go test ./binn ./server ./client
+	go test ./binn ./server
