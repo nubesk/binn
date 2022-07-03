@@ -11,8 +11,12 @@ import (
 	"github.com/binn/binn"
 )
 
+
 var Logger = log.Default()
 
+type Config struct{
+	sendEmptySec int
+}
 
 type responseMessage struct {
 	Text string `json:"text"`
@@ -32,6 +36,14 @@ type responseBottle struct {
 	ID        string           `json:"id"`
 	Message   *responseMessage `json:"message"`
 	ExpiredAt *time.Time       `json:"expired_at"`
+}
+
+func NewConfig(sendEmptySec int) *Config {
+	return &Config{ sendEmptySec: sendEmptySec }
+}
+
+func (c *Config) SendEmptySec() int {
+	return c.sendEmptySec
 }
 
 func containerToResponse(c binn.Container) *responseBottle {
@@ -56,42 +68,53 @@ func logf(format string, v ...interface{}) {
 	Logger.Printf(format, v...)
 }
 
-func BottleGetHandlerFunc(engine *binn.Engine) http.HandlerFunc {
+func BottleGetHandlerFunc(engine *binn.Engine, sendEmptySec int) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
+
+		ticker := time.NewTicker(time.Duration(sendEmptySec) * time.Second)
 
 		outCh := engine.GetOutChan()
+
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
 		var c binn.Container;
 	Loop:
 		for {
 			select {
 			case <- r.Context().Done():
-				return
-			case c = <-outCh:
 				break Loop
+			case c = <-outCh:
+				res := containerToResponse(c)
+				if byte_, err := json.Marshal(res); err == nil {
+					byte_ = append(byte_, 10)
+					byte_ = append(byte_, 10)
+					if _, err := w.Write(byte_); err != nil {
+						w.WriteHeader(http.StatusInternalServerError)
+						logf("[%d] %s", http.StatusInternalServerError, "server error")
+						return
+					}
+					flusher.Flush()
+				} else {
+					w.WriteHeader(http.StatusInternalServerError)
+					logf("[%d] %s", http.StatusInternalServerError, "server error")
+					return
+				}
+			case _ = <-ticker.C:
+				if _, err := w.Write([]byte{10, 10}); err != nil {
+					w.WriteHeader(http.StatusInternalServerError)
+					logf("[%d] %s", http.StatusInternalServerError, "server error")
+					return
+				}
+				flusher.Flush()
 			default:
 				break
 			}
 		}
-
-		res := containerToResponse(c)
-
-		if byte_, err := json.Marshal(res); err == nil {
-			if _, err := w.Write(byte_); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				logf("[%d] %s", http.StatusInternalServerError, "server error")
-				return
-			}
-		} else {
-			w.WriteHeader(http.StatusInternalServerError)
-			logf("[%d] %s", http.StatusInternalServerError, "server error")
-			return
-		}
-
-		logf(
-			"[%d] %s", http.StatusOK,
-			fmt.Sprintf("id: %#v message: %#v", c.ID(), c.Message().Text))
 		return
 	}
 }
@@ -121,7 +144,7 @@ func BottlePostHandlerFunc(engine *binn.Engine) http.HandlerFunc {
 	}
 }
 
-func BottleHandlerFunc(engine *binn.Engine) http.HandlerFunc {
+func BottleHandlerFunc(engine *binn.Engine, cfg *Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Headers", "*")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -129,7 +152,7 @@ func BottleHandlerFunc(engine *binn.Engine) http.HandlerFunc {
 
 		var handler http.HandlerFunc
 		if (r.Method == http.MethodGet) {
-			handler = BottleGetHandlerFunc(engine)
+			handler = BottleGetHandlerFunc(engine, cfg.sendEmptySec)
 		} else if (r.Method == http.MethodPost) {
 			handler = BottlePostHandlerFunc(engine)
 		}
@@ -139,9 +162,9 @@ func BottleHandlerFunc(engine *binn.Engine) http.HandlerFunc {
 }
 
 
-func Server(engine *binn.Engine, addr string) *http.Server {
+func Server(engine *binn.Engine, addr string, cfg *Config) *http.Server {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/bottle", BottleHandlerFunc(engine))
+	mux.HandleFunc("/api/bottle", BottleHandlerFunc(engine, cfg))
 
 	return &http.Server{
 		Addr: addr,

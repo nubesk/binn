@@ -36,7 +36,7 @@ func TestHandleGetBottle (t *testing.T) {
 		storage,
 	)
 
-	handler := BottleGetHandlerFunc(engine)
+	handler := BottleGetHandlerFunc(engine, 10)
 
 	ctx, cancelFunc := context.WithTimeout(
 		context.Background(),
@@ -45,6 +45,10 @@ func TestHandleGetBottle (t *testing.T) {
 	defer cancelFunc()
 
 	req := httptest.NewRequest("GET", "http://example.com/api/bottle", nil)
+	reqCtx, _ := context.WithTimeout(
+		context.Background(),
+		time.Duration(10 * time.Millisecond))
+	req = req.WithContext(reqCtx)
 	w := httptest.NewRecorder()
 	handler(w, req)
 
@@ -58,7 +62,7 @@ func TestHandleGetBottle (t *testing.T) {
 	}
 
 	assert.Equal(t, 200, resp.StatusCode)
-	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
+	assert.Equal(t, "text/event-stream; charset=utf-8", resp.Header.Get("Content-Type"))
 	assert.NotEqual(t, "1c7a8201-cdf7-11ec-a9b3-0242ac110004", rb.ID)
 	assert.Equal(t, "", rb.Message.Text)
 }

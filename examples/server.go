@@ -11,12 +11,16 @@ import (
 	"github.com/binn/binn"
 )
 
-func printConfig(cfg *binn.Config) {
+func printEngineConfig(cfg *binn.Config) {
 	fmt.Printf("%18s: %d\n", "Seed", cfg.Seed())
 	fmt.Printf("%18s: %f\n", "Delivery cycle sec", cfg.DeliveryCycle().Seconds())
 	fmt.Printf("%18s: %t\n", "Enable validation", cfg.Validation())
 	fmt.Printf("%18s: %f\n", "Generate cycle sec", cfg.GenerateCycle().Seconds())
 	fmt.Printf("%18s: %t\n", "Enable debug", cfg.Debug())
+}
+
+func printServerConfig(cfg *server.Config) {
+	fmt.Printf("%18s: %d\n", "Send empty sec", cfg.SendEmptySec())
 }
 
 func loadEnvAsInt(key string, defaultValue int) int {
@@ -39,7 +43,7 @@ func loadEnvAsBool(key string, defaultValue bool) bool {
 	return v
 }
 
-func loadConfigFromEnv() *binn.Config {
+func loadEngineConfigFromEnv() *binn.Config {
 	seed := loadEnvAsInt("BINN_SEED", 42)
 	deliveryCycleSec := loadEnvAsInt("BINN_DELIVERY_CYCLE_SEC", 20)
 	enableValidation := loadEnvAsBool("BINN_ENABLE_VALIDATION", true)
@@ -50,14 +54,20 @@ func loadConfigFromEnv() *binn.Config {
 		time.Duration(generateCycleSec) * time.Second, enableDebug)
 }
 
+func loadServerConfigFromEnv() *server.Config {
+	sendEmptySec := loadEnvAsInt("BINN_SEND_EMPTY_SEC", 29)
+	return server.NewConfig(sendEmptySec)
+}
+
 func main() {
-	cfg := loadConfigFromEnv()
+	ecfg := loadEngineConfigFromEnv()
+	scfg := loadServerConfigFromEnv()
 
 	idStorage := binn.DefaultIDStorage()
 	storage := binn.NewContainerStorage(true, time.Duration(10)*time.Minute, idStorage)
 
 	engine := binn.NewEngine(
-		cfg,
+		ecfg,
 		storage,
 	)
 
@@ -83,9 +93,10 @@ func main() {
 		port = "8080"
 	}
 
-	printConfig(cfg)
+	printEngineConfig(ecfg)
+	printServerConfig(scfg)
 
-	srv := server.Server(engine, fmt.Sprintf(":%s", port))
+	srv := server.Server(engine, fmt.Sprintf(":%s", port), scfg)
 	srv.ListenAndServe()
 	defer srv.Close()
 }
