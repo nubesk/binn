@@ -12,15 +12,18 @@ import (
 )
 
 func printEngineConfig(cfg *binn.Config) {
-	fmt.Printf("%18s: %d\n", "Seed", cfg.Seed())
-	fmt.Printf("%18s: %f\n", "Delivery cycle sec", cfg.DeliveryCycle().Seconds())
-	fmt.Printf("%18s: %t\n", "Enable validation", cfg.Validation())
-	fmt.Printf("%18s: %f\n", "Generate cycle sec", cfg.GenerateCycle().Seconds())
-	fmt.Printf("%18s: %t\n", "Enable debug", cfg.Debug())
+	fmt.Printf("%s:\n", "Engine")
+	fmt.Printf("\t%s: %d\n", "Seed", cfg.Seed())
+	fmt.Printf("\t%s: %f\n", "Delivery cycle sec", cfg.DeliveryCycle().Seconds())
+	fmt.Printf("\t%s: %t\n", "Enable validation", cfg.Validation())
+	fmt.Printf("\t%s: %f\n", "Generate cycle sec", cfg.GenerateCycle().Seconds())
+	fmt.Printf("\t%s: %t\n", "Enable debug", cfg.Debug())
 }
 
 func printServerConfig(cfg *server.Config) {
-	fmt.Printf("%18s: %d\n", "Send empty sec", cfg.SendEmptySec())
+	fmt.Printf("%s:\n", "Server")
+	fmt.Printf("\t%s: %d\n", "Send empty sec", cfg.SendEmptySec())
+	fmt.Printf("\t%s: %t\n", "Enable debug", cfg.Debug())
 }
 
 func loadEnvAsInt(key string, defaultValue int) int {
@@ -48,7 +51,7 @@ func loadEngineConfigFromEnv() *binn.Config {
 	deliveryCycleSec := loadEnvAsInt("BINN_DELIVERY_CYCLE_SEC", 20)
 	enableValidation := loadEnvAsBool("BINN_ENABLE_VALIDATION", true)
 	generateCycleSec := loadEnvAsInt("BINN_GENERATE_CYCLE_SEC", 20)
-	enableDebug := loadEnvAsBool("BINN_ENABLE_DEBUG", true)
+	enableDebug := loadEnvAsBool("BINN_ENGINE_ENABLE_DEBUG", true)
 	
 	return binn.NewConfig(seed, time.Duration(deliveryCycleSec) * time.Second, enableValidation,
 		time.Duration(generateCycleSec) * time.Second, enableDebug)
@@ -56,7 +59,8 @@ func loadEngineConfigFromEnv() *binn.Config {
 
 func loadServerConfigFromEnv() *server.Config {
 	sendEmptySec := loadEnvAsInt("BINN_SEND_EMPTY_SEC", 29)
-	return server.NewConfig(sendEmptySec)
+	enableDebug := loadEnvAsBool("BINN_SERVER_ENABLE_DEBUG", true)
+	return server.NewConfig(sendEmptySec, enableDebug)
 }
 
 func main() {
@@ -96,7 +100,7 @@ func main() {
 	printEngineConfig(ecfg)
 	printServerConfig(scfg)
 
-	srv := server.Server(engine, fmt.Sprintf(":%s", port), scfg)
+	srv := server.NewServer(engine, fmt.Sprintf(":%s", port), scfg)
 	srv.ListenAndServe()
 	defer srv.Close()
 }

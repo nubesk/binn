@@ -14,9 +14,11 @@ import (
 
 
 var Logger = log.New(os.Stderr, "[SERVER] ", log.LstdFlags)
+var Debug = true
 
 type Config struct{
 	sendEmptySec int
+	enableDebug  bool
 }
 
 type responseMessage struct {
@@ -39,12 +41,30 @@ type responseBottle struct {
 	ExpiredAt *time.Time       `json:"expired_at"`
 }
 
-func NewConfig(sendEmptySec int) *Config {
-	return &Config{ sendEmptySec: sendEmptySec }
+func NewConfig(sendEmptySec int, enableDebug bool) *Config {
+	return &Config{
+		sendEmptySec: sendEmptySec,
+		enableDebug:  enableDebug,
+	}
 }
 
 func (c *Config) SendEmptySec() int {
 	return c.sendEmptySec
+}
+
+func (c *Config) Debug() bool {
+	return c.enableDebug
+}
+
+func NewServer(engine *binn.Engine, addr string, cfg *Config) *http.Server {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/bottle", BottleHandlerFunc(engine, cfg))
+	Debug = cfg.Debug()
+
+	return &http.Server{
+		Addr: addr,
+		Handler: mux,
+	}
 }
 
 func containerToResponse(c binn.Container) *responseBottle {
@@ -62,7 +82,9 @@ func requestToContainer(req *requestBottle) binn.Container {
 }
 
 func logf(format string, v ...interface{}) {
-	Logger.Printf(format, v...)
+	if Debug {
+		Logger.Printf(format, v...)
+	}
 }
 
 func BottleGetHandlerFunc(engine *binn.Engine, sendEmptySec int) http.HandlerFunc {
@@ -156,16 +178,5 @@ func BottleHandlerFunc(engine *binn.Engine, cfg *Config) http.HandlerFunc {
 		}
 
 		handler(w, r)
-	}
-}
-
-
-func Server(engine *binn.Engine, addr string, cfg *Config) *http.Server {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/api/bottle", BottleHandlerFunc(engine, cfg))
-
-	return &http.Server{
-		Addr: addr,
-		Handler: mux,
 	}
 }
