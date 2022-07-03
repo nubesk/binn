@@ -1,13 +1,14 @@
 package binn
 
 import (
+	"os"
 	"log"
 	"fmt"
 	"time"
 	"context"
 )
 
-var Logger *log.Logger
+var Logger = log.New(os.Stderr, "[ENGINE] ", log.LstdFlags)
 
 type GenerateContainerHandlerFunc func (cs ContainerKeeper) error
 
@@ -41,10 +42,6 @@ func (e *Engine) logf(format string, v ...interface{}) {
 		return
 	}
 	
-	if Logger == nil {
-		log.Printf(format, v...)
-		return
-	}
 	Logger.Printf(format, v...)
 }
 
@@ -91,10 +88,10 @@ func (e *Engine) Run(ctx context.Context) {
 			case <- t.C:
 				err := e.generateContainerHandler(e.storage)
 				if err != nil {
-					e.logf("[%s] %s\n", "Engine", err)
+					e.logf("%s", err)
 					break
 				}
-				e.logf("[%s] %s\n", "Engine", "The engine generate a empty container")
+				e.logf("The engine generate a empty container")
 			}
 		}
 	}()
@@ -110,12 +107,10 @@ func (e *Engine) Run(ctx context.Context) {
 				// it is not necessary for a user to tell a error
 				// it hides whether server received bottle or not
 				if err := e.storage.Add(c); err == nil {
-					e.logf("[%s] %s\n", "Engine",
-						fmt.Sprintf("The engine add a container(id=%#v message=%#v)",
-							c.ID(),
-							c.Message().Text,
-						),
-					)
+					e.logf(fmt.Sprintf("The engine add a container(id=%#v message=%#v)",
+						c.ID(),
+						c.Message().Text,
+					))
 				} else {
 					e.logf("Failed: %s", err)
 				}
@@ -140,12 +135,10 @@ func (e *Engine) Run(ctx context.Context) {
 					break
 				}
 
-				e.logf("[%s] %s\n", "Engine",
-					fmt.Sprintf("The engine delivery a container(id=%#v message=%#v)",
-						c.ID(),
-						c.Message().Text,
-					),
-				)
+				e.logf(fmt.Sprintf("The engine delivery a container(id=%#v message=%#v)",
+					c.ID(),
+					c.Message().Text,
+				))
 				e.outCh <- c
 			default:
 				break

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"os"
 	"log"
 	"fmt"
 	"time"
@@ -12,7 +13,7 @@ import (
 )
 
 
-var Logger = log.Default()
+var Logger = log.New(os.Stderr, "[SERVER] ", log.LstdFlags)
 
 type Config struct{
 	sendEmptySec int
@@ -61,10 +62,6 @@ func requestToContainer(req *requestBottle) binn.Container {
 }
 
 func logf(format string, v ...interface{}) {
-	if Logger == nil {
-		log.Printf(format, v...)
-		return
-	}
 	Logger.Printf(format, v...)
 }
 
@@ -95,19 +92,20 @@ func BottleGetHandlerFunc(engine *binn.Engine, sendEmptySec int) http.HandlerFun
 					byte_ = append(byte_, 10)
 					if _, err := w.Write(byte_); err != nil {
 						w.WriteHeader(http.StatusInternalServerError)
-						logf("[%d] %s", http.StatusInternalServerError, "server error")
+						logf("%d %s", http.StatusInternalServerError, "Failed to write response")
 						return
 					}
+					logf("send a container(id=%#v message=%#v)", c.ID(), c.Message().Text)
 					flusher.Flush()
 				} else {
 					w.WriteHeader(http.StatusInternalServerError)
-					logf("[%d] %s", http.StatusInternalServerError, "server error")
+					logf("%d %s", http.StatusInternalServerError, "Failed to decode response")
 					return
 				}
 			case _ = <-ticker.C:
 				if _, err := w.Write([]byte{10, 10}); err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
-					logf("[%d] %s", http.StatusInternalServerError, "server error")
+					logf("%d %s", http.StatusInternalServerError, "Failed to write empty lines")
 					return
 				}
 				flusher.Flush()
@@ -126,7 +124,7 @@ func BottlePostHandlerFunc(engine *binn.Engine) http.HandlerFunc {
 		var req requestBottle
 		if err := json.Unmarshal(body, &req); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			logf("[%d] %s", http.StatusBadRequest, fmt.Sprintf("payload is invalid format, %s", string(body)))
+			logf("%d %s", http.StatusBadRequest, fmt.Sprintf("payload is invalid format, %s", string(body)))
 			return
 		}
 
@@ -138,7 +136,7 @@ func BottlePostHandlerFunc(engine *binn.Engine) http.HandlerFunc {
 		w.WriteHeader(http.StatusNoContent)
 
 		logf(
-			"[%d] %s", http.StatusNoContent,
+			"%d %s", http.StatusNoContent,
 			fmt.Sprintf("id: %#v message: %#v", c.ID(), c.Message().Text),
 		)
 	}
