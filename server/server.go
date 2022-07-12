@@ -5,6 +5,7 @@ import (
 	"log"
 	"fmt"
 	"time"
+	"strings"
 	"net/http"
 	"io/ioutil"
 	"encoding/json"
@@ -109,10 +110,9 @@ func BottleGetHandlerFunc(engine *binn.Engine, sendEmptySec int) http.HandlerFun
 				break Loop
 			case c = <-outCh:
 				res := containerToResponse(c)
-				if byte_, err := json.Marshal(res); err == nil {
-					byte_ = append(byte_, 10)
-					byte_ = append(byte_, 10)
-					if _, err := w.Write(byte_); err != nil {
+				if bytes, err := json.Marshal(res); err == nil {
+					bytes = []byte(strings.Join([]string{"data: ", string(bytes), "\n\n"}, ""))
+					if _, err := w.Write(bytes); err != nil {
 						w.WriteHeader(http.StatusInternalServerError)
 						logf("%d %s", http.StatusInternalServerError, "Failed to write response")
 						return
