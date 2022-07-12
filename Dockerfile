@@ -7,7 +7,7 @@ WORKDIR /go/src/github.com/binn
 COPY ./ ./
 RUN go mod download && \
     go get github.com/binn/binn
-RUN go build -o /tmp/server examples/server.go
+RUN go build -o /tmp/server ./main.go
 
 
 FROM alpine:latest
