@@ -20,4 +20,4 @@ jobs:
         run: go get -v -t -d ./...
 
       - name: Test code
-        run: go test -v ./binn ./server ./client
+        run: go test -v ./binn ./server
