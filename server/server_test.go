@@ -56,7 +56,7 @@ func TestHandleGetBottle (t *testing.T) {
 	body, _ := io.ReadAll(resp.Body)
 
 	var rb responseBottle
-	if err := json.Unmarshal(body[6:], &rb); err != nil {
+	if err := json.Unmarshal(body[20:], &rb); err != nil {
 		assert.Failf(t, "failed", "%w", err)
 		return
 	}

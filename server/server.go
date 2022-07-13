@@ -111,7 +111,7 @@ func BottleGetHandlerFunc(engine *binn.Engine, sendEmptySec int) http.HandlerFun
 			case c = <-outCh:
 				res := containerToResponse(c)
 				if bytes, err := json.Marshal(res); err == nil {
-					bytes = []byte(strings.Join([]string{"data: ", string(bytes), "\n\n"}, ""))
+					bytes = []byte(strings.Join([]string{"event: bottle\ndata: ", string(bytes), "\n\n"}, ""))
 					if _, err := w.Write(bytes); err != nil {
 						w.WriteHeader(http.StatusInternalServerError)
 						logf("%d %s", http.StatusInternalServerError, "Failed to write response")
