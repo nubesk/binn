@@ -16,7 +16,7 @@ import (
 
 func TestHandleGetBottle (t *testing.T) {
 	cfg := binn.DefaultConfig()
-	cfg.SetDeliveryCycle(time.Duration(1) * time.Millisecond)
+	cfg.SetDeliveryCycle(time.Duration(10) * time.Millisecond)
 
 	idStorage := binn.DefaultIDStorage()
 	storage := binn.NewContainerStorage(true, time.Duration(10)*time.Minute, idStorage)
@@ -40,10 +40,11 @@ func TestHandleGetBottle (t *testing.T) {
 
 	ctx, cancelFunc := context.WithTimeout(
 		context.Background(),
-		time.Duration(100 * time.Millisecond))
+		time.Duration(500 * time.Millisecond))
 	engine.Run(ctx)
 	defer cancelFunc()
 
+	time.Sleep(time.Duration(200) * time.Millisecond)
 	req := httptest.NewRequest("GET", "http://example.com/api/bottle", nil)
 	reqCtx, _ := context.WithTimeout(
 		context.Background(),
