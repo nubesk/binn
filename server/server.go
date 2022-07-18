@@ -42,6 +42,23 @@ type responseBottle struct {
 	ExpiredAt *time.Time       `json:"expired_at"`
 }
 
+type SSEMessage struct {
+	Event string
+	Data  string
+}
+
+func (s *SSEMessage) String() string {
+	return strings.Join([]string{
+		fmt.Sprintf("event: %s", s.Event),
+		fmt.Sprintf("data: %s", s.Data),
+	}, "\n")
+}
+
+const EventStreamSeparator = "\n\n"
+func (s *SSEMessage) StringWithSeparator() string {
+	return fmt.Sprintf("%s%s", s.String(), EventStreamSeparator)
+}
+
 func NewConfig(sendEmptySec int, enableDebug bool) *Config {
 	return &Config{
 		sendEmptySec: sendEmptySec,
@@ -111,7 +128,8 @@ func BottleGetHandlerFunc(engine *binn.Engine, sendEmptySec int) http.HandlerFun
 			case c = <-outCh:
 				res := containerToResponse(c)
 				if bytes, err := json.Marshal(res); err == nil {
-					bytes = []byte(strings.Join([]string{"event: bottle\ndata: ", string(bytes), "\n\n"}, ""))
+					sm := SSEMessage{ Event: "bottle", Data: string(bytes) }
+					bytes = []byte(sm.StringWithSeparator())
 					if _, err := w.Write(bytes); err != nil {
 						w.WriteHeader(http.StatusInternalServerError)
 						logf("%d %s", http.StatusInternalServerError, "failed to write response")
@@ -125,7 +143,7 @@ func BottleGetHandlerFunc(engine *binn.Engine, sendEmptySec int) http.HandlerFun
 					return
 				}
 			case _ = <-ticker.C:
-				if _, err := w.Write([]byte{10, 10}); err != nil {
+				if _, err := w.Write([]byte(EventStreamSeparator)); err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
 					logf("%d %s", http.StatusInternalServerError, "failed to write empty lines")
 					return
