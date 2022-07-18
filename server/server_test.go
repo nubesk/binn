@@ -17,6 +17,8 @@ import (
 func TestHandleGetBottle (t *testing.T) {
 	cfg := binn.DefaultConfig()
 	cfg.SetDeliveryCycle(time.Duration(10) * time.Millisecond)
+	cfg.DisableDebug()
+	Debug = false
 
 	idStorage := binn.DefaultIDStorage()
 	storage := binn.NewContainerStorage(true, time.Duration(10)*time.Minute, idStorage)
@@ -70,7 +72,8 @@ func TestHandleGetBottle (t *testing.T) {
 
 func TestHandlePostBottle (t *testing.T) {
 	cfg := binn.DefaultConfig()
-	cfg.EnableDebug()
+	cfg.DisableDebug()
+	Debug = false
 
 	idStorage := binn.DefaultIDStorage()
 	storage := binn.NewContainerStorage(true, time.Duration(10)*time.Minute, idStorage)
