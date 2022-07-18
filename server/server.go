@@ -114,20 +114,20 @@ func BottleGetHandlerFunc(engine *binn.Engine, sendEmptySec int) http.HandlerFun
 					bytes = []byte(strings.Join([]string{"event: bottle\ndata: ", string(bytes), "\n\n"}, ""))
 					if _, err := w.Write(bytes); err != nil {
 						w.WriteHeader(http.StatusInternalServerError)
-						logf("%d %s", http.StatusInternalServerError, "Failed to write response")
+						logf("%d %s", http.StatusInternalServerError, "failed to write response")
 						return
 					}
 					logf("send a container(id=%#v message=%#v)", c.ID(), c.Message().Text)
 					flusher.Flush()
 				} else {
 					w.WriteHeader(http.StatusInternalServerError)
-					logf("%d %s", http.StatusInternalServerError, "Failed to decode response")
+					logf("%d %s", http.StatusInternalServerError, "failed to decode response")
 					return
 				}
 			case _ = <-ticker.C:
 				if _, err := w.Write([]byte{10, 10}); err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
-					logf("%d %s", http.StatusInternalServerError, "Failed to write empty lines")
+					logf("%d %s", http.StatusInternalServerError, "failed to write empty lines")
 					return
 				}
 				flusher.Flush()

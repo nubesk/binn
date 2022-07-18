@@ -91,7 +91,7 @@ func (e *Engine) Run(ctx context.Context) {
 					e.logf("%s", err)
 					break
 				}
-				e.logf("The engine generate a empty container")
+				e.logf("generate a empty container")
 			}
 		}
 	}()
@@ -107,12 +107,12 @@ func (e *Engine) Run(ctx context.Context) {
 				// it is not necessary for a user to tell a error
 				// it hides whether server received bottle or not
 				if err := e.storage.Add(c); err == nil {
-					e.logf(fmt.Sprintf("The engine add a container(id=%#v message=%#v)",
+					e.logf(fmt.Sprintf("add a container(id=%#v message=%#v)",
 						c.ID(),
 						c.Message().Text,
 					))
 				} else {
-					e.logf("Failed: %s", err)
+					e.logf("failed: %s", err)
 				}
 			default:
 				break
@@ -135,7 +135,7 @@ func (e *Engine) Run(ctx context.Context) {
 					break
 				}
 
-				e.logf(fmt.Sprintf("The engine delivery a container(id=%#v message=%#v)",
+				e.logf(fmt.Sprintf("deliver a container(id=%#v message=%#v)",
 					c.ID(),
 					c.Message().Text,
 				))
